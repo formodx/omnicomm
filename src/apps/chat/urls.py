@@ -5,7 +5,7 @@ from .views import ChatViewSet
 
 
 router = SimpleRouter()
-router.register('chat', ChatViewSet)
+router.register('', ChatViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

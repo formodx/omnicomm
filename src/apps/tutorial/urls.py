@@ -5,7 +5,7 @@ from .views import TutorialViewSet
 
 
 router = SimpleRouter()
-router.register('tutorial', TutorialViewSet)
+router.register('', TutorialViewSet)
 
 urlpatterns = [
     path('', include(router.urls)),

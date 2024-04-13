@@ -1,101 +1,107 @@
-from rest_framework.decorators import api_view
+from rest_framework.decorators import permission_classes, api_view
 from rest_framework.authtoken.models import Token
-from rest_framework.generics import GenericAPIView
+from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.response import Response
-from rest_framework import status
 
-from .models import User
 from .serializers import UserSerializer
-from .serializers import SignInSerializer
-from .serializers import SignOutSerializer
-from .serializers import ChangePasswordSerializer
+from .models import User
 
 
-class GetUpdateAPIView(GenericAPIView):
+class GetUpdateAPIView(RetrieveUpdateAPIView):
+    queryset = User.objects.all()
     serializer_class = UserSerializer
 
-    def get(self, request):
-        serializer = self.get_serializer(instance=request.user)
+    lookup_field = None
+    lookup_url_kwarg = None
 
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def get_object(self):
+        # queryset = self.filter_queryset(self.get_queryset())
 
-    def patch(self, request):
-        serializer = self.get_serializer(instance=request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
+        # obj = get_object_or_404(queryset, {})
 
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+        # May raise a permission denied
+        # self.check_object_permissions(self.request, obj)
 
+        # return obj
 
-class SignInAPIView(GenericAPIView):
-    serializer_class = SignInSerializer
-    permission_classes = []
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = serializer.validated_data['user']
-
-        token, created = Token.objects.get_or_create(user=user)
-
-        return Response(data={'token': str(token)}, status=status.HTTP_200_OK)
-
-
-class SignOutAPIView(GenericAPIView):
-    serializer_class = SignOutSerializer
-
-    def post(self, request):
-        token = request.auth
-
-        Token.objects.get(key=token).delete()
-
-        return Response(data=None, status=status.HTTP_200_OK)
-
-
-class ChangePasswordAPIView(GenericAPIView):
-    serializer_class = ChangePasswordSerializer
-
-    def post(self, request):
-        serializer = self.get_serializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
-
-        user = request.user
-
-        if not user.check_password(serializer.validated_data['old_password']):
-            return Response(data=None, status=status.HTTP_400_BAD_REQUEST)
-
-        user.set_password(serializer.validated_data['new_password'])
-        user.save()
-
-        return Response(data=None, status=status.HTTP_200_OK)
+        return self.request.user
 
 
 @api_view(['POST'])
+@permission_classes([])
 def sign_in(request):
-    pass
+    # TODO: edit response
+    email = request.data['email']
+    password = request.data['password']
+
+    user = User.objects.filter(email=email).first()
+
+    if user is None:
+        return Response(data='Email not found')
+
+    if not user.check_password(raw_password=password):
+        return Response(data='Password is not correct')
+
+    token, created = Token.objects.get_or_create(user=user)
+
+    return Response(data={'token': str(token)})
 
 
 @api_view(['POST'])
 def sign_out(request):
-    pass
+    # TODO: request.auth
+    # TODO: edit response
+
+    user = request.user
+
+    token = Token.objects.filter(user=user)
+    token.delete()
+
+    return Response()
 
 
 @api_view()
 def get_users(request):
-    users = User.objects.all()
-    serializer = UserSerializer(users, many=True)
+    # TODO: edit response
 
-    return Response(data=serializer.data)
+    data = []
+    users = User.objects.all()
+
+    for user in users:
+        data.append({
+            'email': user.email,
+        })
+
+    return Response(data=data)
 
 
 @api_view()
 def get_user_by_pk(request, pk):
-    try:
-        user = User.objects.get(id=pk)
-    except:
-        return Response(data=None)
+    # TODO: edit response
+
+    user = User.objects.filter(pk=pk).first()
 
     serializer = UserSerializer(instance=user)
 
     return Response(data=serializer.data)
+
+
+@api_view(['POST'])
+def change_password(request):
+    # TODO: edit response
+    old_password = request.data['old_password']
+    new_password = request.data['new_password']
+    confirmation_password = request.data['confirmation_password']
+
+    user = request.user
+
+    if not user.check_password(old_password):
+        return Response(data='Old password is not correct')
+
+    if new_password != confirmation_password:
+        return Response(data='New password is not equal to confirmation password')
+
+    user.set_password(new_password)
+    user.save()
+
+    return Response()

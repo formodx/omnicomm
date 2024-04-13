@@ -25,9 +25,9 @@ from .yasg import urlpatterns as doc_urls
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('api/v1/', include('apps.common.urls')),
+    path('api/v1/common/', include('apps.common.urls')),
     path('api/v1/user/', include('apps.user.urls')),
-    path('api/v1/report/', include('apps.report.urls')),
+    path('api/v1/', include('apps.report.urls')),
     path('api/v1/chat/', include('apps.chat.urls')),
     path('api/v1/message/', include('apps.message.urls')),
     path('api/v1/post/', include('apps.post.urls')),
